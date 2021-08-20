@@ -28,6 +28,23 @@ type (
 	Fields []Field
 )
 
+var staticTypes = map[string]string{
+	"string": TypeString,
+	"bool":   TypeBool,
+	"int":    TypeInt32,
+	"uint":   TypeUint64,
+}
+
+func getAcceptedTypes(field string) (string, bool) {
+	datatype, ok := staticTypes[field]
+	if ok {
+		return datatype, ok
+	}
+
+	//err := check.ComponentCreated()
+	return datatype, ok
+}
+
 // ParseFields parses the provided fields, analyses the types and checks there is no duplicated field
 func ParseFields(fields []string, isForbiddenField func(string) error) (Fields, error) {
 	// Used to check duplicated field
@@ -60,14 +77,7 @@ func ParseFields(fields []string, isForbiddenField func(string) error) (Fields, 
 		datatypeName, datatype := TypeString, TypeString
 		isTypeSpecified := len(fieldSplit) == 2
 		if isTypeSpecified {
-			acceptedTypes := map[string]string{
-				"string": TypeString,
-				"bool":   TypeBool,
-				"int":    TypeInt32,
-				"uint":   TypeUint64,
-			}
-
-			if t, ok := acceptedTypes[fieldSplit[1]]; ok {
+			if t, ok := getAcceptedTypes(fieldSplit[1]); ok {
 				datatype = t
 				datatypeName = fieldSplit[1]
 			} else {

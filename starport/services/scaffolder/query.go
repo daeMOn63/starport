@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/gobuffalo/genny"
+	"github.com/tendermint/starport/starport/pkg/check"
 	"github.com/tendermint/starport/starport/pkg/field"
 	"github.com/tendermint/starport/starport/pkg/gomodulepath"
 	"github.com/tendermint/starport/starport/pkg/multiformatname"
@@ -42,16 +43,16 @@ func (s *Scaffolder) AddQuery(
 		return sm, err
 	}
 
-	if err := checkComponentValidity(s.path, moduleName, name, true); err != nil {
+	if err := check.ComponentValidity(s.path, moduleName, name, true); err != nil {
 		return sm, err
 	}
 
 	// Parse provided fields
-	parsedReqFields, err := field.ParseFields(reqFields, checkGoReservedWord)
+	parsedReqFields, err := field.ParseFields(reqFields, check.GoReservedWord)
 	if err != nil {
 		return sm, err
 	}
-	parsedResFields, err := field.ParseFields(resFields, checkGoReservedWord)
+	parsedResFields, err := field.ParseFields(resFields, check.GoReservedWord)
 	if err != nil {
 		return sm, err
 	}

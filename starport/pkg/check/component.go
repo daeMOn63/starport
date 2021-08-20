@@ -1,4 +1,4 @@
-package scaffolder
+package check
 
 import (
 	"fmt"
@@ -21,10 +21,10 @@ const (
 	componentPacket  = "packet"
 )
 
-// supportMsgServer checks if the module supports the MsgServer convention
+// SupportMsgServer checks if the module supports the MsgServer convention
 // if not, the module codebase is modified to support it
 // https://github.com/cosmos/cosmos-sdk/blob/master/docs/architecture/adr-031-msg-service.md
-func supportMsgServer(
+func SupportMsgServer(
 	replacer placeholder.Replacer,
 	appPath string,
 	opts *modulecreate.MsgServerOptions,
@@ -55,9 +55,9 @@ func isMsgServerDefined(appPath, moduleName string) (bool, error) {
 	return true, err
 }
 
-// checkComponentValidity performs various checks common to all components to verify if it can be scaffolded
-func checkComponentValidity(appPath, moduleName string, compName multiformatname.Name, noMessage bool) error {
-	ok, err := moduleExists(appPath, moduleName)
+// ComponentValidity performs various checks common to all components to verify if it can be scaffolded
+func ComponentValidity(appPath, moduleName string, compName multiformatname.Name, noMessage bool) error {
+	ok, err := ModuleExists(appPath, moduleName)
 	if err != nil {
 		return err
 	}
@@ -66,16 +66,16 @@ func checkComponentValidity(appPath, moduleName string, compName multiformatname
 	}
 
 	// Ensure the name is valid, otherwise it would generate an incorrect code
-	if err := checkForbiddenComponentName(compName.LowerCamel); err != nil {
+	if err := ForbiddenComponentName(compName.LowerCamel); err != nil {
 		return fmt.Errorf("%s can't be used as a component name: %s", compName, err.Error())
 	}
 
 	// Check component name is not already used
-	return checkComponentCreated(appPath, moduleName, compName, noMessage)
+	return ComponentCreated(appPath, moduleName, compName, noMessage)
 }
 
-// checkForbiddenComponentName returns true if the name is forbidden as a component name
-func checkForbiddenComponentName(name string) error {
+// ForbiddenComponentName returns true if the name is forbidden as a component name
+func ForbiddenComponentName(name string) error {
 	// Check with names already used from the scaffolded code
 	switch name {
 	case
@@ -89,11 +89,11 @@ func checkForbiddenComponentName(name string) error {
 		return fmt.Errorf("%s is used by Starport scaffolder", name)
 	}
 
-	return checkGoReservedWord(name)
+	return GoReservedWord(name)
 }
 
-// checkGoReservedWord checks if the name can't be used because it is a go reserved keyword
-func checkGoReservedWord(name string) error {
+// GoReservedWord checks if the name can't be used because it is a go reserved keyword
+func GoReservedWord(name string) error {
 	// Check keyword or literal
 	if token.Lookup(name).IsKeyword() {
 		return fmt.Errorf("%s is a Go keyword", name)
@@ -143,8 +143,8 @@ func checkGoReservedWord(name string) error {
 	return nil
 }
 
-// checkComponentCreated checks if the component has been already created with Starport in the project
-func checkComponentCreated(appPath, moduleName string, compName multiformatname.Name, noMessage bool) (err error) {
+// ComponentCreated checks if the component has been already created with Starport in the project
+func ComponentCreated(appPath, moduleName string, compName multiformatname.Name, noMessage bool) (err error) {
 
 	// associate the type to check with the component that scaffold this type
 	typesToCheck := map[string]string{

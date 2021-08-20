@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gobuffalo/genny"
+	"github.com/tendermint/starport/starport/pkg/check"
 	"github.com/tendermint/starport/starport/pkg/field"
 	"github.com/tendermint/starport/starport/pkg/gomodulepath"
 	"github.com/tendermint/starport/starport/pkg/multiformatname"
@@ -120,11 +121,11 @@ func (s *Scaffolder) AddType(
 		return sm, err
 	}
 
-	if err := checkComponentValidity(s.path, moduleName, name, o.withoutMessage); err != nil {
+	if err := check.ComponentValidity(s.path, moduleName, name, o.withoutMessage); err != nil {
 		return sm, err
 	}
 
-	tFields, err := field.ParseFields(o.fields, checkForbiddenTypeField)
+	tFields, err := field.ParseFields(o.fields, check.ForbiddenTypeField)
 	if err != nil {
 		return sm, err
 	}
@@ -144,7 +145,7 @@ func (s *Scaffolder) AddType(
 		gens []*genny.Generator
 	)
 	// Check and support MsgServer convention
-	g, err = supportMsgServer(
+	g, err = check.SupportMsgServer(
 		tracer,
 		s.path,
 		&modulecreate.MsgServerOptions{
@@ -190,23 +191,11 @@ func (s *Scaffolder) AddType(
 	return sm, s.finish(pwd, path.RawPath)
 }
 
-// checkForbiddenTypeField returns true if the name is forbidden as a field name
-func checkForbiddenTypeField(name string) error {
-	switch name {
-	case
-		"id",
-		"appendedValue",
-		"creator":
-		return fmt.Errorf("%s is used by type scaffolder", name)
-	}
-
-	return checkGoReservedWord(name)
-}
 
 // mapGenerator returns the template generator for a map
 func mapGenerator(replacer placeholder.Replacer, opts *typed.Options, indexes []string) (*genny.Generator, error) {
 	// Parse indexes with the associated type
-	parsedIndexes, err := field.ParseFields(indexes, checkForbiddenTypeField)
+	parsedIndexes, err := field.ParseFields(indexes, check.ForbiddenTypeField)
 	if err != nil {
 		return nil, err
 	}

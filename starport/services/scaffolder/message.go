@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gobuffalo/genny"
+	"github.com/tendermint/starport/starport/pkg/check"
 	"github.com/tendermint/starport/starport/pkg/field"
 	"github.com/tendermint/starport/starport/pkg/gomodulepath"
 	"github.com/tendermint/starport/starport/pkg/multiformatname"
@@ -80,7 +81,7 @@ func (s *Scaffolder) AddMessage(
 		return sm, err
 	}
 
-	if err := checkComponentValidity(s.path, moduleName, name, false); err != nil {
+	if err := check.ComponentValidity(s.path, moduleName, name, false); err != nil {
 		return sm, err
 	}
 
@@ -89,7 +90,7 @@ func (s *Scaffolder) AddMessage(
 	if err != nil {
 		return sm, err
 	}
-	parsedResFields, err := field.ParseFields(resFields, checkGoReservedWord)
+	parsedResFields, err := field.ParseFields(resFields, check.GoReservedWord)
 	if err != nil {
 		return sm, err
 	}
@@ -116,7 +117,7 @@ func (s *Scaffolder) AddMessage(
 
 	// Check and support MsgServer convention
 	var gens []*genny.Generator
-	g, err = supportMsgServer(
+	g, err = check.SupportMsgServer(
 		tracer,
 		s.path,
 		&modulecreate.MsgServerOptions{
@@ -156,5 +157,5 @@ func checkForbiddenMessageField(name string) error {
 		return fmt.Errorf("%s is used by the message scaffolder", name)
 	}
 
-	return checkGoReservedWord(name)
+	return check.GoReservedWord(name)
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gobuffalo/genny"
+	"github.com/tendermint/starport/starport/pkg/check"
 	"github.com/tendermint/starport/starport/pkg/cmdrunner"
 	"github.com/tendermint/starport/starport/pkg/cmdrunner/step"
 	"github.com/tendermint/starport/starport/pkg/gocmd"
@@ -47,12 +48,12 @@ func (s *Scaffolder) AddOracle(
 		return sm, err
 	}
 
-	if err := checkComponentValidity(s.path, moduleName, name, false); err != nil {
+	if err := check.ComponentValidity(s.path, moduleName, name, false); err != nil {
 		return sm, err
 	}
 
 	// Module must implement IBC
-	ok, err := isIBCModule(s.path, moduleName)
+	ok, err := check.IsIBCModule(s.path, moduleName)
 	if err != nil {
 		return sm, err
 	}

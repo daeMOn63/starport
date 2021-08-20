@@ -3,19 +3,15 @@ package scaffolder
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/gobuffalo/genny"
+	"github.com/tendermint/starport/starport/pkg/check"
 	"github.com/tendermint/starport/starport/pkg/field"
 	"github.com/tendermint/starport/starport/pkg/gomodulepath"
 	"github.com/tendermint/starport/starport/pkg/multiformatname"
 	"github.com/tendermint/starport/starport/pkg/placeholder"
 	"github.com/tendermint/starport/starport/pkg/xgenny"
 	"github.com/tendermint/starport/starport/templates/ibc"
-)
-
-const (
-	ibcModuleImplementation = "module_ibc.go"
 )
 
 // AddPacket adds a new type stype to scaffolded app by using optional type fields.
@@ -43,12 +39,12 @@ func (s *Scaffolder) AddPacket(
 		return sm, err
 	}
 
-	if err := checkComponentValidity(s.path, moduleName, name, noMessage); err != nil {
+	if err := check.ComponentValidity(s.path, moduleName, name, noMessage); err != nil {
 		return sm, err
 	}
 
 	// Module must implement IBC
-	ok, err := isIBCModule(s.path, moduleName)
+	ok, err := check.IsIBCModule(s.path, moduleName)
 	if err != nil {
 		return sm, err
 	}
@@ -57,13 +53,13 @@ func (s *Scaffolder) AddPacket(
 	}
 
 	// Parse packet fields
-	parsedPacketFields, err := field.ParseFields(packetFields, checkForbiddenPacketField)
+	parsedPacketFields, err := field.ParseFields(packetFields, check.ForbiddenPacketField)
 	if err != nil {
 		return sm, err
 	}
 
 	// Parse acknowledgment fields
-	parsedAcksFields, err := field.ParseFields(ackFields, checkGoReservedWord)
+	parsedAcksFields, err := field.ParseFields(ackFields, check.GoReservedWord)
 	if err != nil {
 		return sm, err
 	}
@@ -95,34 +91,4 @@ func (s *Scaffolder) AddPacket(
 		return sm, err
 	}
 	return sm, s.finish(pwd, path.RawPath)
-}
-
-// isIBCModule returns true if the provided module implements the IBC module interface
-// we naively check the existence of module_ibc.go for this check
-func isIBCModule(appPath string, moduleName string) (bool, error) {
-	absPath, err := filepath.Abs(filepath.Join(appPath, moduleDir, moduleName, ibcModuleImplementation))
-	if err != nil {
-		return false, err
-	}
-
-	_, err = os.Stat(absPath)
-	if os.IsNotExist(err) {
-		// Not an IBC module
-		return false, nil
-	}
-
-	return true, err
-}
-
-// checkForbiddenPacketField returns true if the name is forbidden as a packet name
-func checkForbiddenPacketField(name string) error {
-	switch name {
-	case
-		"sender",
-		"port",
-		"channelID":
-		return fmt.Errorf("%s is used by the packet scaffolder", name)
-	}
-
-	return checkGoReservedWord(name)
 }

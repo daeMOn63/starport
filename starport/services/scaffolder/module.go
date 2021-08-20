@@ -4,16 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go/parser"
-	"go/token"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/gobuffalo/genny"
+	"github.com/tendermint/starport/starport/pkg/check"
 	"github.com/tendermint/starport/starport/pkg/cmdrunner"
 	"github.com/tendermint/starport/starport/pkg/cmdrunner/step"
-	appanalysis "github.com/tendermint/starport/starport/pkg/cosmosanalysis/app"
 	"github.com/tendermint/starport/starport/pkg/cosmosver"
 	"github.com/tendermint/starport/starport/pkg/gocmd"
 	"github.com/tendermint/starport/starport/pkg/gomodulepath"
@@ -21,7 +17,6 @@ import (
 	"github.com/tendermint/starport/starport/pkg/placeholder"
 	"github.com/tendermint/starport/starport/pkg/validation"
 	"github.com/tendermint/starport/starport/pkg/xgenny"
-	"github.com/tendermint/starport/starport/templates/module"
 	modulecreate "github.com/tendermint/starport/starport/templates/module/create"
 	moduleimport "github.com/tendermint/starport/starport/templates/module/import"
 )
@@ -31,8 +26,6 @@ const (
 	wasmVersion   = "v0.16.0"
 	extrasImport  = "github.com/tendermint/spm-extras"
 	extrasVersion = "v0.1.0"
-	appPkg        = "app"
-	moduleDir     = "x"
 )
 
 // moduleCreationOptions holds options for creating a new module
@@ -91,12 +84,12 @@ func (s *Scaffolder) CreateModule(
 	moduleName = mfName.Lowercase
 
 	// Check if the module name is valid
-	if err := checkModuleName(moduleName); err != nil {
+	if err := check.ModuleName(moduleName); err != nil {
 		return sm, err
 	}
 
 	// Check if the module already exist
-	ok, err := moduleExists(s.path, moduleName)
+	ok, err := check.ModuleExists(s.path, moduleName)
 	if err != nil {
 		return sm, err
 	}
@@ -111,7 +104,7 @@ func (s *Scaffolder) CreateModule(
 	}
 
 	// Check dependencies
-	if err := checkDependencies(creationOpts.dependencies); err != nil {
+	if err := check.Dependencies(creationOpts.dependencies); err != nil {
 		return sm, err
 	}
 
@@ -175,7 +168,7 @@ func (s *Scaffolder) ImportModule(tracer *placeholder.Tracer, name string) (sm x
 		return sm, errors.New("module cannot be imported. Supported module: wasm")
 	}
 
-	ok, err := isWasmImported(s.path)
+	ok, err := check.IsWasmImported(s.path, wasmImport)
 	if err != nil {
 		return sm, err
 	}
@@ -221,73 +214,6 @@ func (s *Scaffolder) ImportModule(tracer *placeholder.Tracer, name string) (sm x
 	return sm, s.finish(pwd, path.RawPath)
 }
 
-func moduleExists(appPath string, moduleName string) (bool, error) {
-	absPath, err := filepath.Abs(filepath.Join(appPath, moduleDir, moduleName))
-	if err != nil {
-		return false, err
-	}
-
-	_, err = os.Stat(absPath)
-	if os.IsNotExist(err) {
-		// The module doesn't exist
-		return false, nil
-	}
-
-	return true, err
-}
-
-func checkModuleName(moduleName string) error {
-	// go keyword
-	if token.Lookup(moduleName).IsKeyword() {
-		return fmt.Errorf("%s is a Go keyword", moduleName)
-	}
-
-	// name of default registered module
-	switch moduleName {
-	case
-		"auth",
-		"genutil",
-		"bank",
-		"capability",
-		"staking",
-		"mint",
-		"distr",
-		"gov",
-		"params",
-		"crisis",
-		"slashing",
-		"ibc",
-		"upgrade",
-		"evidence",
-		"transfer",
-		"vesting":
-		return fmt.Errorf("%s is a default module", moduleName)
-	}
-	return nil
-}
-
-func isWasmImported(appPath string) (bool, error) {
-	abspath, err := filepath.Abs(filepath.Join(appPath, appPkg))
-	if err != nil {
-		return false, err
-	}
-	fset := token.NewFileSet()
-	all, err := parser.ParseDir(fset, abspath, func(os.FileInfo) bool { return true }, parser.ImportsOnly)
-	if err != nil {
-		return false, err
-	}
-	for _, pkg := range all {
-		for _, f := range pkg.Files {
-			for _, imp := range f.Imports {
-				if strings.Contains(imp.Path.Value, wasmImport) {
-					return true, nil
-				}
-			}
-		}
-	}
-	return false, nil
-}
-
 func (s *Scaffolder) installWasm() error {
 	switch s.version {
 	case cosmosver.StargateZeroFourtyAndAbove:
@@ -300,28 +226,4 @@ func (s *Scaffolder) installWasm() error {
 	default:
 		return errors.New("version not supported")
 	}
-}
-
-// checkDependencies perform checks on the dependencies
-func checkDependencies(dependencies []modulecreate.Dependency) error {
-	depMap := make(map[string]struct{})
-	for _, dep := range dependencies {
-		// check the dependency has been registered
-		if err := appanalysis.CheckKeeper(module.PathAppModule, dep.KeeperName); err != nil {
-			return fmt.Errorf(
-				"the module cannot have %s as a dependency: %s",
-				dep.Name,
-				err.Error(),
-			)
-		}
-
-		// check duplicated
-		_, ok := depMap[dep.Name]
-		if ok {
-			return fmt.Errorf("%s is a duplicated dependency", dep)
-		}
-		depMap[dep.Name] = struct{}{}
-	}
-
-	return nil
 }
